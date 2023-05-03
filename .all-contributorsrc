@@ -1148,6 +1148,24 @@
       "contributions": [
         "financial"
       ]
+    },
+    {
+      "login": "pseudocc",
+      "name": "catlas",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85104110?v=4",
+      "profile": "https://github.com/pseudocc",
+      "contributions": [
+        "financial"
+      ]
+    },
+    {
+      "login": "Kapocsi",
+      "name": "Thomas Kapocsi",
+      "avatar_url": "https://avatars.githubusercontent.com/u/84490604?v=4",
+      "profile": "http://kapocsi.ca",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,

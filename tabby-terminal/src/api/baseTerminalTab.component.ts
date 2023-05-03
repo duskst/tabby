@@ -129,6 +129,7 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
     protected output = new Subject<string>()
     protected binaryOutput = new Subject<Buffer>()
     protected sessionChanged = new Subject<BaseSession|null>()
+    protected recentInputs = ''
     private bellPlayer: HTMLAudioElement
     private termContainerSubscriptions = new SubscriptionContainer()
     private sessionHandlers = new SubscriptionContainer()
@@ -211,6 +212,11 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
                 this.showSearchPanel = true
                 setImmediate(() => {
                     const input = this.element.nativeElement.querySelector('.search-input')
+                    const selectedText = (this.frontend?.getSelection() ?? '').trim()
+                    if (input && selectedText.length) {
+                        input.value = selectedText
+                    }
+
                     input?.focus()
                     input?.select()
                 })
@@ -415,6 +421,11 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
                 this.frontend!.write('\r\n\r\n')
             }
         }
+
+        this.input$.subscribe(data => {
+            this.recentInputs += data
+            this.recentInputs = this.recentInputs.substring(this.recentInputs.length - 32)
+        })
     }
 
     async buildContextMenu (): Promise<MenuItemOptions[]> {
@@ -765,11 +776,12 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
             }
         })
 
-        if (destroyOnSessionClose) {
-            this.attachSessionHandler(this.session.closed$, () => {
+        this.attachSessionHandler(this.session.closed$, () => {
+            const behavior = this.profile.behaviorOnSessionEnd
+            if (destroyOnSessionClose || behavior === 'close' || behavior === 'auto' && this.isSessionExplicitlyTerminated()) {
                 this.destroy()
-            })
-        }
+            }
+        })
 
         this.attachSessionHandler(this.session.destroyed$, () => {
             this.setSession(null)
@@ -834,5 +846,12 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
         } else {
             cb(this)
         }
+    }
+
+    /**
+     * Return true if the user explicitly exit the session
+     */
+    protected isSessionExplicitlyTerminated (): boolean {
+        return false
     }
 }
