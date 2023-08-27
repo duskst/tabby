@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import { Socket } from 'net'
 import colors from 'ansi-colors'
 import stripAnsi from 'strip-ansi'
 import { Injector } from '@angular/core'
 import { LogService } from 'tabby-core'
-import { BaseSession, BaseTerminalProfile, InputProcessingOptions, InputProcessor, LoginScriptsOptions, SessionMiddleware, StreamProcessingOptions, TerminalStreamProcessor } from 'tabby-terminal'
+import { BaseSession, ConnectableTerminalProfile, InputProcessingOptions, InputProcessor, LoginScriptsOptions, SessionMiddleware, StreamProcessingOptions, TerminalStreamProcessor } from 'tabby-terminal'
 import { Subject, Observable } from 'rxjs'
 
 
-export interface TelnetProfile extends BaseTerminalProfile {
+export interface TelnetProfile extends ConnectableTerminalProfile {
     options: TelnetProfileOptions
 }
 
