@@ -20,7 +20,9 @@ interface CollapsableProfileGroup extends ProfileGroup {
 })
 export class ProfilesSettingsTabComponent extends BaseComponent {
     builtinProfiles: PartialProfile<Profile>[] = []
+    profiles: PartialProfile<Profile>[] = []
     templateProfiles: PartialProfile<Profile>[] = []
+    customProfiles: PartialProfile<Profile>[] = []
     profileGroups: PartialProfileGroup<CollapsableProfileGroup>[]
     filter = ''
     Platform = Platform
@@ -40,12 +42,17 @@ export class ProfilesSettingsTabComponent extends BaseComponent {
     }
 
     async ngOnInit (): Promise<void> {
-        this.refresh()
+        await this.refreshProfileGroups()
+        await this.refreshProfiles()
+        this.subscribeUntilDestroyed(this.config.changed$, () => this.refreshProfileGroups())
+        this.subscribeUntilDestroyed(this.config.changed$, () => this.refreshProfiles())
+    }
+
+    async refreshProfiles (): Promise<void> {
         this.builtinProfiles = (await this.profilesService.getProfiles()).filter(x => x.isBuiltin)
+        this.customProfiles = (await this.profilesService.getProfiles()).filter(x => !x.isBuiltin)
         this.templateProfiles = this.builtinProfiles.filter(x => x.isTemplate)
         this.builtinProfiles = this.builtinProfiles.filter(x => !x.isTemplate)
-        this.refresh()
-        this.subscribeUntilDestroyed(this.config.changed$, () => this.refresh())
     }
 
     launchProfile (profile: PartialProfile<Profile>): void {
@@ -240,7 +247,7 @@ export class ProfilesSettingsTabComponent extends BaseComponent {
         }
     }
 
-    async refresh (): Promise<void> {
+    async refreshProfileGroups (): Promise<void> {
         const profileGroupCollapsed = JSON.parse(window.localStorage.profileGroupCollapsed ?? '{}')
         const groups = await this.profilesService.getProfileGroups({ includeNonUserGroup: true, includeProfiles: true })
         groups.sort((a, b) => a.name.localeCompare(b.name))
