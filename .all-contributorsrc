@@ -635,10 +635,10 @@
       ]
     },
     {
-      "login": "X-0x01",
-      "name": "X-0x01",
+      "login": "0x973",
+      "name": "0x973",
       "avatar_url": "https://avatars.githubusercontent.com/u/19320096?v=4",
-      "profile": "http://pingbase.cn",
+      "profile": "https://github.com/0x973",
       "contributions": [
         "code"
       ]
@@ -1271,6 +1271,24 @@
       "name": "Ash Neilson",
       "avatar_url": "https://avatars.githubusercontent.com/u/35913512?v=4",
       "profile": "https://github.com/ashneilson",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "cfs4819",
+      "name": "Chen Fansong",
+      "avatar_url": "https://avatars.githubusercontent.com/u/53071761?v=4",
+      "profile": "https://github.com/cfs4819",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Mxmilu666",
+      "name": "Mxmilu",
+      "avatar_url": "https://avatars.githubusercontent.com/u/82694310?v=4",
+      "profile": "https://5k.work/",
       "contributions": [
         "code"
       ]
