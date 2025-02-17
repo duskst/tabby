@@ -32,11 +32,13 @@ extraResources:
 - extras
 asarUnpack:
 - 'dist/*.map'
-
+- node_modules/keytar/build/Release/*.node
+- node_modules/**/*.node
 win:
   icon: "./build/windows/icon.ico"
   artifactName: tabby-${version}-portable-${env.ARCH}.${ext}
-  rfc3161TimeStampServer: http://timestamp.sectigo.com
+  signtoolOptions:
+    rfc3161TimeStampServer: http://timestamp.sectigo.com
 nsis:
   oneClick: false
   artifactName: tabby-${version}-setup-${env.ARCH}.${ext}
@@ -70,7 +72,8 @@ linux:
   executableArgs:
   - "--no-sandbox"
   desktop:
-    StartupWMClass: tabby
+    entry:
+      StartupWMClass: tabby
 snap:
   plugs:
   - default
@@ -99,3 +102,7 @@ rpm:
   - '_build_id_links none'
   - '--replaces'
   - 'terminus-terminal'
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false

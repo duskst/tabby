@@ -144,7 +144,7 @@ Plugins and themes can be installed directly from the Settings view inside Tabby
 
 # Sponsors <!-- omit in toc -->
 
-[![](https://assets-production.packagecloud.io/assets/packagecloud-logo-light-scaled-26ce8e96060fddf74afbd4445e63ba35590d4aaa56edc98495bb390ef3cae0ae.png)](https://packagecloud.io)
+<a href="https://packagecloud.io"><img src="https://assets-production.packagecloud.io/assets/logo_v1-d5895e7b89b2dee19030e85515fd0f91d8f3b37c82d218a6531fc89c2b1b613c.png" width="200"></a>
 
 [**packagecloud**](https://packagecloud.io) has provided free Debian/RPM repository hosting
 
@@ -152,7 +152,7 @@ Plugins and themes can be installed directly from the Settings view inside Tabby
 
 [**keygen**](https://keygen.sh/?via=eugene) has provided free release & auto-update hosting
 
-<a href="https://iqhive.com/"><img src="https://private-user-images.githubusercontent.com/161476/361584584-ed292436-1d50-46bc-b479-78222c83ed22.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MjQ3MDg3NjgsIm5iZiI6MTcyNDcwODQ2OCwicGF0aCI6Ii8xNjE0NzYvMzYxNTg0NTg0LWVkMjkyNDM2LTFkNTAtNDZiYy1iNDc5LTc4MjIyYzgzZWQyMi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjQwODI2JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MDgyNlQyMTQxMDhaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iYzNlZjIxN2JiYzBkYTU5NGE4YmZlZDJiNmIxZWE1ZTAyOTNhYjJlZTRhOGZjYTk4N2E4MzMzZjg0ZTNkZWQ0JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZhY3Rvcl9pZD0wJmtleV9pZD0wJnJlcG9faWQ9MCJ9.pQzR2d71YV4TIxOH3Lg20HpNKrm_r2D-xfkEM_F2DTs" width="100"></a>
+<a href="https://iqhive.com/"><img src="https://iqhive.com/img/icons/logo.svg" width="200"></a>
 
 [**IQ Hive**](https://iqhive.com) is providing financial support for the project development
 
@@ -361,6 +361,10 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/fireblue"><img src="https://avatars.githubusercontent.com/u/1034929?v=4?s=100" width="100px;" alt="fireblue"/><br /><sub><b>fireblue</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=fireblue" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/marko1616"><img src="https://avatars.githubusercontent.com/u/45327989?v=4?s=100" width="100px;" alt="marko1616"/><br /><sub><b>marko1616</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=marko1616" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://www.selfhosted.sg/"><img src="https://avatars.githubusercontent.com/u/128927132?v=4?s=100" width="100px;" alt="SelfHosted"/><br /><sub><b>SelfHosted</b></sub></a><br /><a href="#financial-SelfHosted-Club" title="Financial">💵</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://hiroga.hatenablog.com/"><img src="https://avatars.githubusercontent.com/u/13391129?v=4?s=100" width="100px;" alt="Hiroaki Ogasawara"/><br /><sub><b>Hiroaki Ogasawara</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=xhiroga" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/geodic"><img src="https://avatars.githubusercontent.com/u/64704703?v=4?s=100" width="100px;" alt="geodic"/><br /><sub><b>geodic</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=geodic" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

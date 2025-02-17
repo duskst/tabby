@@ -2,7 +2,7 @@ name: Package-Build
 on: [push, pull_request]
 jobs:
   Lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout
@@ -13,10 +13,11 @@ jobs:
     - name: Installing Node
       uses: actions/setup-node@v3.7.0
       with:
-        node-version: 18
+        node-version: 22
 
     - name: Install deps
       run: |
+        sudo apt-get update && sudo apt-get install -y libfontconfig1-dev
         npm i -g yarn
         cd app
         yarn
@@ -31,7 +32,7 @@ jobs:
       run: yarn run lint
 
   macOS-Build:
-    runs-on: macos-12
+    runs-on: macos-15
     needs: Lint
     strategy:
       matrix:
@@ -55,14 +56,12 @@ jobs:
     - name: Installing Node
       uses: actions/setup-node@v3.7.0
       with:
-        node-version: 18
+        node-version: 22
 
     - run: rustup target add ${{matrix.rust_triple}}
 
     - name: Install deps
       run: |
-        sudo -H pip3 install setuptools
-        sudo npm i -g yarn
         yarn --network-timeout 1000000
       env:
         ARCH: ${{matrix.arch}}
@@ -82,7 +81,7 @@ jobs:
 
     - name: Build and sign packages
       run: scripts/build-macos.mjs
-      if: github.repository == 'Eugeny/tabby' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags'))
+      if: github.event_name == 'push' && (github.ref_protected || startsWith(github.ref, 'refs/tags'))
       env:
         ARCH: ${{matrix.arch}}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -97,7 +96,7 @@ jobs:
 
     - name: Build packages without signing
       run: scripts/build-macos.mjs
-      if: "! (github.repository == 'Eugeny/tabby' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags')))"
+      if: "! (github.event_name == 'push' && (github.ref_protected || startsWith(github.ref, 'refs/tags')))"
       env:
         ARCH: ${{matrix.arch}}
         # DEBUG: electron-builder,electron-builder:*
@@ -131,7 +130,7 @@ jobs:
         path: artifact-zip
 
   Linux-Build:
-    runs-on: ubuntu-20.04
+    runs-on: ${{matrix.os}}
     needs: Lint
     strategy:
       matrix:
@@ -139,14 +138,17 @@ jobs:
           - build-arch: x64
             arch: amd64
             rust_triple: x86_64-unknown-linux-gnu
+            os: ubuntu-24.04
           - build-arch: arm64
             arch: arm64
             rust_triple: aarch64-unknown-linux-gnu
             triplet: aarch64-linux-gnu-
+            os: ubuntu-24.04-arm
           - build-arch: arm
             arch: armhf
             rust_triple: arm-unknown-linux-gnueabihf
             triplet: arm-linux-gnueabihf-
+            os: ubuntu-24.04
       fail-fast: false
 
     env:
@@ -166,23 +168,27 @@ jobs:
     - name: Install Node
       uses: actions/setup-node@v3.7.0
       with:
-        node-version: 18
+        node-version: 22
+
+    - name: Install FPM
+      run: |
+        sudo gem install fpm
 
     - run: rustup target add ${{matrix.rust_triple}}
 
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install libarchive-tools zsh crossbuild-essential-${{matrix.arch}}
+        sudo apt-get install libfontconfig1-dev libarchive-tools zsh crossbuild-essential-${{matrix.arch}}
 
     - name: Setup tar to run as root
       run: sudo chmod u+s "$(command -v tar)"
-      if: matrix.build-arch != 'x64'
+      if: matrix.build-arch == 'arm'
 
     - name: Download cached sysroot
       uses: actions/cache@v3
       id: dl-cached-sysroot
-      if: matrix.build-arch !='x64'
+      if: matrix.build-arch == 'arm'
       with:
         key: sysroot-${{matrix.build-arch}}
         path: /${{matrix.build-arch}}-sysroot
@@ -192,7 +198,7 @@ jobs:
         sudo apt-get update -y && sudo apt-get install debootstrap qemu-user-static binfmt-support -y
         sudo qemu-debootstrap --include=libfontconfig1-dev,libsecret-1-dev,libnss3,libatk1.0-0,libatk-bridge2.0-0,libgdk-pixbuf2.0-0,libgtk-3-0,libgbm1 --variant=buildd --exclude=snapd --components=main,restricted,universe,multiverse --extractor=dpkg-deb --arch ${{matrix.arch}} bionic /${{matrix.build-arch}}-sysroot/ http://ports.ubuntu.com/ubuntu-ports/
         sudo find /${{matrix.build-arch}}-sysroot -type l -lname '/*' -exec sh -c 'file="$0"; dir=$(dirname "$file"); target=$(readlink "$0"); prefix=$(dirname "$dir" | sed 's@[^/]*@\.\.@g'); newtarget="$prefix$target"; ln -snf $newtarget $file' {} \; ;
-      if: matrix.build-arch != 'x64' && steps.dl-cached-sysroot.outputs.cache-hit != 'true'
+      if: matrix.build-arch == 'arm' && steps.dl-cached-sysroot.outputs.cache-hit != 'true'
 
     - name: Setup env to use ${{matrix.build-arch}} sysroot
       run: |
@@ -207,9 +213,9 @@ jobs:
         elif [[ ${{matrix.arch}} == 'arm64' ]]; then
           echo "PKG_CONFIG_PATH=/${{matrix.build-arch}}-sysroot/usr/lib/pkgconfig/:/${{matrix.build-arch}}-sysroot/usr/lib/aarch64-linux-gnu/pkgconfig/" >> $GITHUB_ENV
         fi
-      if: matrix.build-arch != 'x64'
+      if: matrix.build-arch == 'arm'
 
-    - name: Install npm_modules (amd64)
+    - name: Install npm_modules (native)
       run: |
         npm i -g yarn node-gyp
         yarn --network-timeout 1000000 --arch=${{matrix.build-arch}} --target-arch=${{matrix.build-arch}}
@@ -226,6 +232,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         KEYGEN_TOKEN: ${{ secrets.KEYGEN_TOKEN }}
         USE_HARD_LINKS: false
+        USE_SYSTEM_FPM: true
         # DEBUG: electron-builder,electron-builder:*
 
     - name: Build web resources (amd64 only)
@@ -244,7 +251,7 @@ jobs:
 
     - name: Upload packages to packagecloud.io
       uses: TykTechnologies/packagecloud-action@main
-      if: github.repository == 'Eugeny/tabby' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
       env:
         PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
       with:
@@ -312,10 +319,14 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Code signing with Software Trust Manager
+      uses: digicert/ssm-code-signing@v1.0.0
+      if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags'))
+
     - name: Installing Node
       uses: actions/setup-node@v3.7.0
       with:
-        node-version: 18
+        node-version: 22
 
     - run: npm i -g npx
     - run: rustup target add ${{matrix.rust_triple}}
@@ -335,20 +346,48 @@ jobs:
       env:
         ARCH: ${{matrix.arch}}
 
+    - name: Decode certificate
+      if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags'))
+      env:
+        SM_CLIENT_CERT_FILE_B64: ${{ secrets.SM_CLIENT_CERT_FILE_B64 }}
+      run: |
+        SM_CLIENT_CERT_FILE=$RUNNER_TEMP/certificate.p12
+        echo "$SM_CLIENT_CERT_FILE_B64" | base64 --decode > $SM_CLIENT_CERT_FILE
+        echo "SM_CLIENT_CERT_FILE=$SM_CLIENT_CERT_FILE" >> "$GITHUB_ENV"
+      shell: bash
+
     - name: Build and sign packages
-      run: node scripts/build-windows.mjs
-      if: github.repository == 'Eugeny/tabby' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags'))
+      if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags'))
+      shell: powershell
+      run: |
+        Get-FileHash $env:SM_CLIENT_CERT_FILE -Algorithm MD5
+        smksp_registrar.exe list
+        smctl.exe healthcheck
+        smctl.exe keypair ls
+        smctl windows certsync --keypair-alias $env:SM_KEYPAIR_ALIAS
+        smctl.exe certificate ls
+        C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user
+        smksp_cert_sync.exe
+
+        # not used but necessary for electron-builder to run
+        $env:WIN_CSC_LINK=$env:SM_CLIENT_CERT_FILE
+        $env:WIN_CSC_KEY_PASSWORD=$env:SM_CLIENT_CERT_PASSWORD
+        node scripts/build-windows.mjs
       env:
         ARCH: ${{matrix.arch}}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         KEYGEN_TOKEN: ${{ secrets.KEYGEN_TOKEN }}
-        WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-        WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-        DEBUG: electron-builder,electron-builder:*
+        SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+        SM_PUBLISHER_NAME: ${{ secrets.SM_PUBLISHER_NAME }}
+        SM_API_KEY: ${{ secrets.SM_API_KEY }}
+        SM_HOST: ${{ vars.SM_HOST }}
+        SM_CODE_SIGNING_CERT_SHA1_HASH: ${{ vars.SM_CODE_SIGNING_CERT_SHA1_HASH }}
+        SM_KEYPAIR_ALIAS: ${{ vars.SM_KEYPAIR_ALIAS }}
+        # DEBUG: electron-builder,electron-builder:*
 
     - name: Build packages without signing
       run: node scripts/build-windows.mjs
-      if: "! (github.repository == 'Eugeny/tabby' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags')))"
+      if: "! (github.event_name == 'push' && (startsWith(github.ref, 'refs/tags')))"
       env:
         ARCH: ${{matrix.arch}}
 

@@ -28,10 +28,7 @@ builder({
         },
         mac: {
             identity: !process.env.CI || process.env.CSC_LINK ? undefined : null,
-            notarize: process.env.APPLE_TEAM_ID ? {
-                appBundleId: 'org.tabby',
-                teamId: process.env.APPLE_TEAM_ID,
-            } : false,
+            notarize: !!process.env.APPLE_TEAM_ID,
         },
         npmRebuild: process.env.ARCH !== 'arm64',
         publish: process.env.KEYGEN_TOKEN ? [
@@ -42,7 +39,7 @@ builder({
             },
         ] : undefined,
     },
-    publish: process.env.KEYGEN_TOKEN ? isTag ? 'always' : 'onTagOrDraft' : 'never',
+    publish: (process.env.KEYGEN_TOKEN && isTag) ? 'always' : 'never',
 }).catch(e => {
     console.error(e)
     process.exit(1)

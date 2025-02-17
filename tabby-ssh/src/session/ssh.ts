@@ -50,6 +50,18 @@ type AuthMethod = {
     kind: 'pageant',
 }
 
+function sshAuthTypeForMethod (m: AuthMethod): string {
+    switch (m.type) {
+        case 'none': return 'none'
+        case 'hostbased': return 'hostbased'
+        case 'prompt-password': return 'password'
+        case 'saved-password': return 'password'
+        case 'keyboard-interactive': return 'keyboard-interactive'
+        case 'publickey': return 'publickey'
+        case 'agent': return 'publickey'
+    }
+}
+
 export class KeyboardInteractivePrompt {
     readonly responses: string[] = []
 
@@ -86,7 +98,7 @@ export class SSHSession {
     ssh: russh.SSHClient|russh.AuthenticatedSSHClient
     sftp?: russh.SFTP
     forwardedPorts: ForwardedPort[] = []
-    jumpChannel: russh.Channel|null = null
+    jumpChannel: russh.NewChannel|null = null
     savedPassword?: string
     get serviceMessage$ (): Observable<string> { return this.serviceMessage }
     get keyboardInteractivePrompt$ (): Observable<KeyboardInteractivePrompt> { return this.keyboardInteractivePrompt }
@@ -99,7 +111,7 @@ export class SSHSession {
 
     private logger: Logger
     private refCount = 0
-    private remainingAuthMethods: AuthMethod[] = []
+    private allAuthMethods: AuthMethod[] = []
     private serviceMessage = new Subject<string>()
     private keyboardInteractivePrompt = new Subject<KeyboardInteractivePrompt>()
     private willDestroy = new Subject<void>()
@@ -113,6 +125,7 @@ export class SSHSession {
     private translate: TranslateService
     private knownHosts: SSHKnownHostsService
     private privateKeyImporters: AutoPrivateKeyLocator[]
+    private previouslyDisconnected = false
 
     constructor (
         private injector: Injector,
@@ -137,29 +150,34 @@ export class SSHSession {
         })
     }
 
+    private addPublicKeyAuthMethod (name: string, contents: Buffer) {
+        this.allAuthMethods.push({
+            type: 'publickey',
+            name,
+            contents,
+        })
+    }
+
     async init (): Promise<void> {
-        this.remainingAuthMethods = [{ type: 'none' }]
+        this.allAuthMethods = [{ type: 'none' }]
         if (!this.profile.options.auth || this.profile.options.auth === 'publicKey') {
             if (this.profile.options.privateKeys?.length) {
                 for (const pk of this.profile.options.privateKeys) {
+                    // eslint-disable-next-line @typescript-eslint/init-declarations
+                    let contents: Buffer
                     try {
-                        this.remainingAuthMethods.push({
-                            type: 'publickey',
-                            name: pk,
-                            contents: await this.fileProviders.retrieveFile(pk),
-                        })
+                        contents = await this.fileProviders.retrieveFile(pk)
                     } catch (error) {
                         this.emitServiceMessage(colors.bgYellow.yellow.black(' ! ') + ` Could not load private key ${pk}: ${error}`)
+                        continue
                     }
+
+                    this.addPublicKeyAuthMethod(pk, contents)
                 }
             } else {
                 for (const importer of this.privateKeyImporters) {
                     for (const [name, contents] of await importer.getKeys()) {
-                        this.remainingAuthMethods.push({
-                            type: 'publickey',
-                            name,
-                            contents,
-                        })
+                        this.addPublicKeyAuthMethod(name, contents)
                     }
                 }
             }
@@ -170,7 +188,7 @@ export class SSHSession {
             if (!spec) {
                 this.emitServiceMessage(colors.bgYellow.yellow.black(' ! ') + ` Agent auth selected, but no running Agent process is found`)
             } else {
-                this.remainingAuthMethods.push({
+                this.allAuthMethods.push({
                     type: 'agent',
                     ...spec,
                 })
@@ -178,22 +196,24 @@ export class SSHSession {
         }
         if (!this.profile.options.auth || this.profile.options.auth === 'password') {
             if (this.profile.options.password) {
-                this.remainingAuthMethods.push({ type: 'saved-password', password: this.profile.options.password })
+                this.allAuthMethods.push({ type: 'saved-password', password: this.profile.options.password })
             }
             const password = await this.passwordStorage.loadPassword(this.profile)
             if (password) {
-                this.remainingAuthMethods.push({ type: 'saved-password', password })
+                this.allAuthMethods.push({ type: 'saved-password', password })
             }
-            this.remainingAuthMethods.push({ type: 'prompt-password' })
         }
         if (!this.profile.options.auth || this.profile.options.auth === 'keyboardInteractive') {
             const savedPassword = this.profile.options.password ?? await this.passwordStorage.loadPassword(this.profile)
             if (savedPassword) {
-                this.remainingAuthMethods.push({ type: 'keyboard-interactive', savedPassword })
+                this.allAuthMethods.push({ type: 'keyboard-interactive', savedPassword })
             }
-            this.remainingAuthMethods.push({ type: 'keyboard-interactive' })
+            this.allAuthMethods.push({ type: 'keyboard-interactive' })
         }
-        this.remainingAuthMethods.push({ type: 'hostbased' })
+        if (!this.profile.options.auth || this.profile.options.auth === 'password') {
+            this.allAuthMethods.push({ type: 'prompt-password' })
+        }
+        this.allAuthMethods.push({ type: 'hostbased' })
     }
 
     private async getAgentConnectionSpec (): Promise<russh.AgentConnectionSpec|null> {
@@ -235,7 +255,7 @@ export class SSHSession {
             throw new Error('Cannot open SFTP session before auth')
         }
         if (!this.sftp) {
-            this.sftp = await this.ssh.openSFTPChannel()
+            this.sftp = await this.ssh.activateSFTP(await this.ssh.openSessionChannel())
         }
         return new SFTPSession(this.sftp, this.injector)
     }
@@ -256,7 +276,7 @@ export class SSHSession {
             const argv = shellQuote.parse(this.profile.options.proxyCommand)
             transport = await russh.SshTransport.newCommand(argv[0], argv.slice(1))
         } else if (this.jumpChannel) {
-            transport = await russh.SshTransport.newSshChannel(await this.jumpChannel.take())
+            transport = await russh.SshTransport.newSshChannel(this.jumpChannel.take())
             this.jumpChannel = null
         } else if (this.profile.options.socksProxyHost) {
             this.emitServiceMessage(colors.bgBlue.black(' Proxy ') + ` Using ${this.profile.options.socksProxyHost}:${this.profile.options.socksProxyPort}`)
@@ -306,9 +326,14 @@ export class SSHSession {
             }
         })
 
+        this.previouslyDisconnected = false
         this.ssh.disconnect$.subscribe(() => {
-            if (this.open) {
-                this.destroy()
+            if (!this.previouslyDisconnected) {
+                this.previouslyDisconnected = true
+                // Let service messages drain
+                setTimeout(() => {
+                    this.destroy()
+                })
             }
         })
 
@@ -359,22 +384,31 @@ export class SSHSession {
 
         this.ssh.tcpChannelOpen$.subscribe(async event => {
             this.logger.info(`Incoming forwarded connection: ${event.clientAddress}:${event.clientPort} -> ${event.targetAddress}:${event.targetPort}`)
+
+            if (!(this.ssh instanceof russh.AuthenticatedSSHClient)) {
+                throw new Error('Cannot open agent channel before auth')
+            }
+
+            const channel = await this.ssh.activateChannel(event.channel)
+
             const forward = this.forwardedPorts.find(x => x.port === event.targetPort && x.host === event.targetAddress)
             if (!forward) {
                 this.emitServiceMessage(colors.bgRed.black(' X ') + ` Rejected incoming forwarded connection for unrecognized port ${event.targetAddress}:${event.targetPort}`)
+                channel.close()
                 return
             }
+
             const socket = new Socket()
             socket.connect(forward.targetPort, forward.targetAddress)
             socket.on('error', e => {
                 // eslint-disable-next-line @typescript-eslint/no-base-to-string
                 this.emitServiceMessage(colors.bgRed.black(' X ') + ` Could not forward the remote connection to ${forward.targetAddress}:${forward.targetPort}: ${e}`)
-                event.channel.close()
+                channel.close()
             })
-            event.channel.data$.subscribe(data => socket.write(data))
-            socket.on('data', data => event.channel.write(Uint8Array.from(data)))
-            event.channel.closed$.subscribe(() => socket.destroy())
-            socket.on('close', () => event.channel.close())
+            channel.data$.subscribe(data => socket.write(data))
+            socket.on('data', data => channel.write(Uint8Array.from(data)))
+            channel.closed$.subscribe(() => socket.destroy())
+            socket.on('close', () => channel.close())
             socket.on('connect', () => {
                 this.logger.info('Connection forwarded')
             })
@@ -385,22 +419,28 @@ export class SSHSession {
             const displaySpec = (this.config.store.ssh.x11Display || process.env.DISPLAY) ?? 'localhost:0'
             this.logger.debug(`Trying display ${displaySpec}`)
 
+            if (!(this.ssh instanceof russh.AuthenticatedSSHClient)) {
+                throw new Error('Cannot open agent channel before auth')
+            }
+
+            const channel = await this.ssh.activateChannel(event.channel)
+
             const socket = new X11Socket()
             try {
                 const x11Stream = await socket.connect(displaySpec)
                 this.logger.info('Connection forwarded')
 
-                event.channel.data$.subscribe(data => {
+                channel.data$.subscribe(data => {
                     x11Stream.write(data)
                 })
                 x11Stream.on('data', data => {
-                    event.channel.write(Uint8Array.from(data))
+                    channel.write(Uint8Array.from(data))
                 })
-                event.channel.closed$.subscribe(() => {
+                channel.closed$.subscribe(() => {
                     socket.destroy()
                 })
                 x11Stream.on('close', () => {
-                    event.channel.close()
+                    channel.close()
                 })
             } catch (e) {
                 // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -411,11 +451,17 @@ export class SSHSession {
                     this.emitServiceMessage('    * VcXsrv: https://sourceforge.net/projects/vcxsrv/')
                     this.emitServiceMessage('    * Xming: https://sourceforge.net/projects/xming/')
                 }
-                event.channel.close()
+                channel.close()
             }
         })
 
-        this.ssh.agentChannelOpen$.subscribe(async channel => {
+        this.ssh.agentChannelOpen$.subscribe(async newChannel => {
+            if (!(this.ssh instanceof russh.AuthenticatedSSHClient)) {
+                throw new Error('Cannot open agent channel before auth')
+            }
+
+            const channel = await this.ssh.activateChannel(newChannel)
+
             const spec = await this.getAgentConnectionSpec()
             if (!spec) {
                 await channel.close()
@@ -469,7 +515,23 @@ export class SSHSession {
         this.keyboardInteractivePrompt.next(prompt)
     }
 
-    async handleAuth (methodsLeft?: string[] | null): Promise<russh.AuthenticatedSSHClient|null> {
+    async handleAuth (): Promise<russh.AuthenticatedSSHClient|null> {
+        const subscription = this.ssh.disconnect$.subscribe(() => {
+            // Auto auth and >=3 keys found
+            if (!this.profile.options.auth && this.allAuthMethods.filter(x => x.type === 'publickey').length >= 3) {
+                this.emitServiceMessage('The server has disconnected during authentication.')
+                this.emitServiceMessage('This may happen if too many private key authentication attemps are made.')
+                this.emitServiceMessage('You can set the specific private key for authentication in the profile settings.')
+            }
+        })
+        try {
+            return await this._handleAuth()
+        } finally {
+            subscription.unsubscribe()
+        }
+    }
+
+    private async _handleAuth (): Promise<russh.AuthenticatedSSHClient|null> {
         this.activePrivateKey = null
 
         if (!(this.ssh instanceof russh.SSHClient)) {
@@ -480,22 +542,37 @@ export class SSHSession {
             throw new Error('No username')
         }
 
+        const noneResult = await this.ssh.authenticateNone(this.authUsername)
+        if (noneResult instanceof russh.AuthenticatedSSHClient) {
+            return noneResult
+        }
+
+        let remainingMethods = [...this.allAuthMethods]
+        let methodsLeft = noneResult.remainingMethods
+
+        function maybeSetRemainingMethods (r: russh.AuthFailure) {
+            if (r.remainingMethods.length) {
+                methodsLeft = r.remainingMethods
+            }
+        }
+
         while (true) {
-            const method = this.remainingAuthMethods.shift()
-            if (!method) {
+            const m = methodsLeft
+            const method = remainingMethods.find(x => m.length === 0 || m.includes(sshAuthTypeForMethod(x)))
+
+            if (this.previouslyDisconnected || !method) {
                 return null
             }
-            if (methodsLeft && !methodsLeft.includes(method.type) && method.type !== 'agent') {
-                // Agent can still be used even if not in methodsLeft
-                this.logger.info('Server does not support auth method', method.type)
-                continue
-            }
+
+            remainingMethods = remainingMethods.filter(x => x !== method)
+
             if (method.type === 'saved-password') {
                 this.emitServiceMessage(this.translate.instant('Using saved password'))
                 const result = await this.ssh.authenticateWithPassword(this.authUsername, method.password)
-                if (result) {
+                if (result instanceof russh.AuthenticatedSSHClient) {
                     return result
                 }
+                maybeSetRemainingMethods(result)
             }
             if (method.type === 'prompt-password') {
                 const modal = this.ngbModal.open(PromptModalComponent)
@@ -510,9 +587,10 @@ export class SSHSession {
                             this.savedPassword = promptResult.value
                         }
                         const result = await this.ssh.authenticateWithPassword(this.authUsername, promptResult.value)
-                        if (result) {
+                        if (result instanceof russh.AuthenticatedSSHClient) {
                             return result
                         }
+                        maybeSetRemainingMethods(result)
                     } else {
                         continue
                     }
@@ -523,10 +601,12 @@ export class SSHSession {
             if (method.type === 'publickey') {
                 try {
                     const key = await this.loadPrivateKey(method.name, method.contents)
-                    const result = await this.ssh.authenticateWithKeyPair(this.authUsername, key)
-                    if (result) {
+                    this.emitServiceMessage(`Trying private key: ${method.name}`)
+                    const result = await this.ssh.authenticateWithKeyPair(this.authUsername, key, null)
+                    if (result instanceof russh.AuthenticatedSSHClient) {
                         return result
                     }
+                    maybeSetRemainingMethods(result)
                 } catch (e) {
                     this.emitServiceMessage(colors.bgYellow.yellow.black(' ! ') + ` Failed to load private key ${method.name}: ${e}`)
                     continue
@@ -537,6 +617,7 @@ export class SSHSession {
 
                 while (true) {
                     if (state.state === 'failure') {
+                        maybeSetRemainingMethods(state)
                         break
                     }
 
@@ -572,7 +653,7 @@ export class SSHSession {
                         }
                     }
 
-                    state = await this.ssh .continueKeyboardInteractiveAuthentication(responses)
+                    state = await this.ssh.continueKeyboardInteractiveAuthentication(responses)
 
                     if (state instanceof russh.AuthenticatedSSHClient) {
                         return state
@@ -582,9 +663,10 @@ export class SSHSession {
             if (method.type === 'agent') {
                 try {
                     const result = await this.ssh.authenticateWithAgent(this.authUsername, method)
-                    if (result) {
+                    if (result instanceof russh.AuthenticatedSSHClient) {
                         return result
                     }
+                    maybeSetRemainingMethods(result)
                 } catch (e) {
                     this.emitServiceMessage(colors.bgYellow.yellow.black(' ! ') + ` Failed to authenticate using agent: ${e}`)
                     continue
@@ -603,7 +685,7 @@ export class SSHSession {
                     reject()
                     return
                 }
-                const channel = await this.ssh.openTCPForwardChannel({
+                const channel = await this.ssh.activateChannel(await this.ssh.openTCPForwardChannel({
                     addressToConnectTo: targetAddress,
                     portToConnectTo: targetPort,
                     originatorAddress: sourceAddress ?? '127.0.0.1',
@@ -612,7 +694,7 @@ export class SSHSession {
                     this.emitServiceMessage(colors.bgRed.black(' X ') + ` Remote has rejected the forwarded connection to ${targetAddress}:${targetPort} via ${fw}: ${err}`)
                     reject()
                     throw err
-                })
+                }))
                 const socket = accept()
                 channel.data$.subscribe(data => socket.write(data))
                 socket.on('data', data => channel.write(Uint8Array.from(data)))
@@ -669,7 +751,7 @@ export class SSHSession {
         if (!(this.ssh instanceof russh.AuthenticatedSSHClient)) {
             throw new Error('Cannot open shell channel before auth')
         }
-        const ch = await this.ssh.openSessionChannel()
+        const ch = await this.ssh.activateChannel(await this.ssh.openSessionChannel())
         await ch.requestPTY('xterm-256color', {
             columns: 80,
             rows: 24,
@@ -692,13 +774,15 @@ export class SSHSession {
     }
 
     async loadPrivateKey (name: string, privateKeyContents: Buffer): Promise<russh.KeyPair> {
-        this.emitServiceMessage(`Loading private key: ${name}`)
         this.activePrivateKey = await this.loadPrivateKeyWithPassphraseMaybe(privateKeyContents.toString())
         return this.activePrivateKey
     }
 
     async loadPrivateKeyWithPassphraseMaybe (privateKey: string): Promise<russh.KeyPair> {
         const keyHash = crypto.createHash('sha512').update(privateKey).digest('hex')
+
+        privateKey = privateKey.replaceAll('EC PRIVATE KEY', 'PRIVATE KEY')
+
         let triedSavedPassphrase = false
         let passphrase: string|null = null
         while (true) {
@@ -710,7 +794,12 @@ export class SSHSession {
                     triedSavedPassphrase = true
                     continue
                 }
-                if (e.toString() === 'Error: Keys(KeyIsEncrypted)' || e.toString() === 'Error: Keys(SshKey(Crypto))') {
+                if ([
+                    'Error: Keys(KeyIsEncrypted)',
+                    'Error: Keys(SshKey(Ppk(Encrypted)))',
+                    'Error: Keys(SshKey(Ppk(IncorrectMac)))',
+                    'Error: Keys(SshKey(Crypto))',
+                ].includes(e.toString())) {
                     await this.passwordStorage.deletePrivateKeyPassword(keyHash)
 
                     const modal = this.ngbModal.open(PromptModalComponent)

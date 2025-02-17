@@ -1,7 +1,7 @@
 import * as glasstron from 'glasstron'
 import { autoUpdater } from 'electron-updater'
 import { Subject, Observable, debounceTime } from 'rxjs'
-import { BrowserWindow, app, ipcMain, Rectangle, Menu, screen, BrowserWindowConstructorOptions, TouchBar, nativeImage, WebContents } from 'electron'
+import { BrowserWindow, app, ipcMain, Rectangle, Menu, screen, BrowserWindowConstructorOptions, TouchBar, nativeImage, WebContents, nativeTheme } from 'electron'
 import ElectronConfig = require('electron-config')
 import { enable as enableRemote } from '@electron/remote/main'
 import * as os from 'os'
@@ -101,6 +101,10 @@ export class Window {
         }
 
         if (process.platform === 'darwin') {
+            bwOptions.visualEffectState = 'active'
+        }
+
+        if (process.platform === 'darwin') {
             this.window = new BrowserWindow(bwOptions) as GlasstronWindow
         } else {
             this.window = new glasstron.BrowserWindow(bwOptions)
@@ -114,6 +118,8 @@ export class Window {
             } else if (process.platform === 'win32' && this.configStore.appearance?.vibrancy) {
                 this.setVibrancy(true)
             }
+
+            this.setDarkMode(this.configStore.appearance?.colorSchemeMode ?? 'dark')
 
             if (!options.hidden) {
                 if (maximized) {
@@ -198,6 +204,18 @@ export class Window {
             this.window.setBlur(enabled)
         } else {
             this.window.setVibrancy(enabled ? macOSVibrancyType : null)
+        }
+    }
+
+    setDarkMode (mode: string): void {
+        if (process.platform === 'darwin') {
+            if ('light' === mode ) {
+                nativeTheme.themeSource = 'light'
+            } else if ('auto' === mode) {
+                nativeTheme.themeSource = 'system'
+            } else {
+                nativeTheme.themeSource = 'dark'
+            }
         }
     }
 
@@ -371,6 +389,10 @@ export class Window {
 
         this.on('window-set-vibrancy', (_, enabled, type) => {
             this.setVibrancy(enabled, type)
+        })
+
+        this.on('window-set-dark-mode', (_, mode) => {
+            this.setDarkMode(mode)
         })
 
         this.on('window-set-window-controls-color', (_, theme) => {
