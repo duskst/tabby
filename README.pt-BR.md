@@ -120,8 +120,9 @@ Plugins e temas podem ser instalados durante a execução na pagina de configura
 * [clippy](https://github.com/Eugeny/tabby-clippy) - um plugin de exemplo que te incomoda o tempo todo
 * [workspace-manager](https://github.com/composer404/tabby-workspace-manager) - permite criar perfis de espaço de trabalho personalizados com base na configuração fornecida
 * [search-in-browser](https://github.com/composer404/tabby-search-in-browser) - abre o navegador padrão do sistema com um texto selecionado na guia do Tabby
-* [sftp-tab](https://github.com/wljince007/tabby-sftp-tab) - open sftp tab for ssh connection like SecureCRT
-
+* [sftp-tab](https://github.com/wljince007/tabby-sftp-tab) - abre uma guia SFTP para conexão SSH como o SecureCRT
+* [web-auth-handler](https://github.com/Jazzmoon/tabby-web-auth-handler) - pop-ups de autenticação web dentro do aplicativo (Construído principalmente para autenticação in-browser do warpgate)
+* [mcp-server](https://github.com/thuanpham582002/tabby-mcp-server) - Integração poderosa do servidor Model Context Protocol para Tabby que se conecta perfeitamente com assistentes de IA através de clientes MCP como Cursor e Windsurf, aprimorando seu fluxo de trabalho no terminal com recursos inteligentes de IA.
 <a name="themes"></a>
 
 # Temas
@@ -350,6 +351,8 @@ Obrigado vai para essas pessoas maravilhosas ([emoji key](https://allcontributor
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/geodic"><img src="https://avatars.githubusercontent.com/u/64704703?v=4?s=100" width="100px;" alt="geodic"/><br /><sub><b>geodic</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=geodic" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://p.foundation/"><img src="https://avatars.githubusercontent.com/u/80860929?v=4?s=100" width="100px;" alt="P Foundation"/><br /><sub><b>P Foundation</b></sub></a><br /><a href="#financial-pfoundation" title="Financial">💵</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/et304383"><img src="https://avatars.githubusercontent.com/u/2693414?v=4?s=100" width="100px;" alt="et304383"/><br /><sub><b>et304383</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=et304383" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

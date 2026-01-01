@@ -117,7 +117,8 @@
 * [workspace-manager](https://github.com/composer404/tabby-workspace-manager) - 允许根据给定的配置创建自定义工作区配置文件
 * [search-in-browser](https://github.com/composer404/tabby-search-in-browser) - 从 Tabby 标签页带有选中的文本来打开系统默认浏览器
 * [sftp-tab](https://github.com/wljince007/tabby-sftp-tab) - 为ssh连接打开类似SecureCRT的sftp标签页
-
+* [web-auth-handler](https://github.com/Jazzmoon/tabby-web-auth-handler) - 应用内网页认证弹出窗口（主要为warpgate浏览器认证而建）
+* [mcp-server](https://github.com/thuanpham582002/tabby-mcp-server) - 为 Tabby 提供强大的模型上下文协议服务器集成，可通过 Cursor 和 Windsurf 等 MCP 客户端无缝连接 AI 助手，利用智能 AI 功能增强您的终端工作流程。
 <a name="themes"></a>
 # 主题
 
@@ -341,6 +342,8 @@
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/geodic"><img src="https://avatars.githubusercontent.com/u/64704703?v=4?s=100" width="100px;" alt="geodic"/><br /><sub><b>geodic</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=geodic" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://p.foundation/"><img src="https://avatars.githubusercontent.com/u/80860929?v=4?s=100" width="100px;" alt="P Foundation"/><br /><sub><b>P Foundation</b></sub></a><br /><a href="#financial-pfoundation" title="Financial">💵</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/et304383"><img src="https://avatars.githubusercontent.com/u/2693414?v=4?s=100" width="100px;" alt="et304383"/><br /><sub><b>et304383</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=et304383" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

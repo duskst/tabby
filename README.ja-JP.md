@@ -127,8 +127,9 @@ Windows上では、`Tabby.exe`がある場所と同じ場所に`data`フォル�
 * [clippy](https://github.com/Eugeny/tabby-clippy) - プラグインの作例として、いつも厄介なあいつが出てくるプラグイン
 * [workspace-manager](https://github.com/composer404/tabby-workspace-manager) - 指定された設定からカスタマイズされたワークスペースを作成することができます
 * [search-in-browser](https://github.com/composer404/tabby-search-in-browser) - Tabby内の端末で選択したテキストを既定ブラウザで開くことができます。
-* [sftp-tab](https://github.com/wljince007/tabby-sftp-tab) - open sftp tab for ssh connection like SecureCRT
-
+* [sftp-tab](https://github.com/wljince007/tabby-sftp-tab) - SecureCRTのようにSSH接続のSFTPタブを開く
+* [web-auth-handler](https://github.com/Jazzmoon/tabby-web-auth-handler) - アプリ内ウェブ認証ポップアップ（主にwarpgateのブラウザ認証用に構築）
+* [mcp-server](https://github.com/thuanpham582002/tabby-mcp-server) - TabbyのためのパワフルなModel Context Protocolサーバー統合機能で、CursorやWindsurfなどのMCPクライアントを通じてAIアシスタントとシームレスに接続し、インテリジェントなAI機能によってターミナルワークフローを強化します。
 <a name="themes"></a>
 
 # テーマ
@@ -357,6 +358,8 @@ Windows上では、`Tabby.exe`がある場所と同じ場所に`data`フォル�
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/geodic"><img src="https://avatars.githubusercontent.com/u/64704703?v=4?s=100" width="100px;" alt="geodic"/><br /><sub><b>geodic</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=geodic" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://p.foundation/"><img src="https://avatars.githubusercontent.com/u/80860929?v=4?s=100" width="100px;" alt="P Foundation"/><br /><sub><b>P Foundation</b></sub></a><br /><a href="#financial-pfoundation" title="Financial">💵</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/et304383"><img src="https://avatars.githubusercontent.com/u/2693414?v=4?s=100" width="100px;" alt="et304383"/><br /><sub><b>et304383</b></sub></a><br /><a href="https://github.com/Eugeny/tabby/commits?author=et304383" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

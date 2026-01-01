@@ -17,14 +17,16 @@ import { getTerminalBackgroundColor } from '../helpers'
 
 
 const INACTIVE_TAB_UNLOAD_DELAY = 1000 * 30
+const OSC_FOCUS_IN = Buffer.from('\x1b[I')
+const OSC_FOCUS_OUT = Buffer.from('\x1b[O')
 
 /**
  * A class to base your custom terminal tabs on
  */
 @Component({ template: '' })
 export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends BaseTabComponent implements OnInit, OnDestroy {
-    static template: string = require<string>('../components/baseTerminalTab.component.pug')
-    static styles: string[] = [require<string>('../components/baseTerminalTab.component.scss')]
+    static template: string = require('../components/baseTerminalTab.component.pug')
+    static styles: string[] = [require('../components/baseTerminalTab.component.scss')]
     static animations: AnimationTriggerMetadata[] = [
         trigger('toolbarSlide', [
             transition(':enter', [
@@ -328,7 +330,7 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
         })
 
         this.bellPlayer = document.createElement('audio')
-        this.bellPlayer.src = require<string>('../bell.ogg')
+        this.bellPlayer.src = require('../bell.ogg')
         this.bellPlayer.load()
 
         this.contextMenuProviders.sort((a, b) => a.weight - b.weight)
@@ -494,7 +496,7 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
             data = Buffer.from(data, 'utf-8')
         }
         this.session?.feedFromTerminal(data)
-        if (this.config.store.terminal.scrollOnInput) {
+        if (this.config.store.terminal.scrollOnInput && !data.equals(OSC_FOCUS_IN) && !data.equals(OSC_FOCUS_OUT)) {
             this.frontend?.scrollToBottom()
         }
     }
@@ -542,7 +544,7 @@ export class BaseTerminalTabComponent<P extends BaseTerminalProfile> extends Bas
         }
 
         if (!this.alternateScreenActive) {
-            if (data.includes('\r') && this.config.store.terminal.warnOnMultilinePaste) {
+            if ((data.includes('\r') || data.includes('\n')) && this.config.store.terminal.warnOnMultilinePaste) {
                 const buttons = [
                     this.translate.instant('Paste'),
                     this.translate.instant('Cancel'),
